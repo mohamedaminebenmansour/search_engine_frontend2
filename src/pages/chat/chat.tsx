@@ -3,7 +3,7 @@ import { PreviewMessage, ThinkingMessage } from "../../components/custom/message
 import { useScrollToBottom } from "@/components/custom/use-scroll-to-bottom";
 import { useState, useEffect, useRef } from "react";
 import { Overview } from "@/components/custom/overview";
-import { apiFetch } from "../../utils/api";
+import { apiFetch, clearToken } from "../../utils/api";
 import Sidebar from "../../components/Sidebar";
 import { useNavigate, useLocation, useNavigationType } from "react-router-dom";
 
@@ -24,12 +24,30 @@ export function Chat() {
   const navigationType = useNavigationType();
 
   const isAuthenticated = !!localStorage.getItem("token");
+  const role = localStorage.getItem("role") || "user";
   const models = isAuthenticated ? ['llama2', 'gemma', 'llama3', 'mistral'] : ['llama3', 'mistral'];
   const [selectedModel, setSelectedModel] = useState(state?.model || models[0]);
+
+  // Redirect non-user roles
+  useEffect(() => {
+    if (!isAuthenticated) {
+      console.log("User not authenticated, redirecting to login");
+      navigate("/login");
+      return;
+    }
+    if (role === "company_admin") {
+      console.log("Company admin detected, redirecting to /company-admin");
+      navigate("/company-admin");
+    } else if (role === "website_admin") {
+      console.log("Website admin detected, redirecting to /website-admin");
+      navigate("/website-admin");
+    }
+  }, [isAuthenticated, role, navigate]);
 
   console.log("Chat Component Render", {
     state,
     isAuthenticated,
+    role,
     selectedModel,
     messagesLength: messages.length,
     historyId,
@@ -72,6 +90,7 @@ export function Chat() {
       userId: localStorage.getItem("user_id"),
       username: storedUsername,
       token: localStorage.getItem("token"),
+      role: localStorage.getItem("role"),
     });
 
     if (!storedUsername) {
@@ -109,7 +128,7 @@ export function Chat() {
     }
   };
 
-  async function handleSubmit(text, model = selectedModel) {
+  async function handleSubmit(text: string, model = selectedModel) {
     if (isLoading) return;
 
     const messageText = text || question;
@@ -139,6 +158,7 @@ export function Chat() {
         ...prev,
         { content: "Erreur: Veuillez vous connecter.", role: "assistant", id: Date.now().toString() },
       ]);
+      clearToken();
       navigate("/login");
       setIsLoading(false);
       return;
@@ -151,6 +171,7 @@ export function Chat() {
         ...prev,
         { content: "Erreur: ID utilisateur invalide. Veuillez vous reconnecter.", role: "assistant", id: Date.now().toString() },
       ]);
+      clearToken();
       navigate("/login");
       setIsLoading(false);
       return;
@@ -180,20 +201,18 @@ export function Chat() {
       console.log("Formatted Resources:", formattedResources);
       setResources(formattedResources);
 
-     
-
       if (isAuthenticated) {
-         if (!data.history_id) {
-        console.warn("No history_id returned from /chat endpoint");
-        setMessages((prev) => [
-          ...prev,
-          { content: "Avertissement: La conversation n'a pas été sauvegardée correctement.", role: "assistant", id: Date.now().toString() },
-        ]);
-      } else {
-        setHistoryId(data.history_id);
-        setIsNewConversation(false);
-        console.log("Conversation saved with history_id:", data.history_id);
-      }
+        if (!data.history_id) {
+          console.warn("No history_id returned from /chat endpoint");
+          setMessages((prev) => [
+            ...prev,
+            { content: "Avertissement: La conversation n'a pas été sauvegardée correctement.", role: "assistant", id: Date.now().toString() },
+          ]);
+        } else {
+          setHistoryId(data.history_id);
+          setIsNewConversation(false);
+          console.log("Conversation saved with history_id:", data.history_id);
+        }
         await fetchHistory();
       }
     } catch (error) {
@@ -216,12 +235,11 @@ export function Chat() {
       userId: localStorage.getItem("user_id"),
       username,
       token: localStorage.getItem("token"),
+      role: localStorage.getItem("role"),
     });
-    localStorage.removeItem("token");
-    localStorage.removeItem("user_id");
-    localStorage.removeItem("username");
+    clearToken();
     console.log("User data cleared from localStorage");
-    navigate("/");
+    navigate("/login");
   };
 
   const restoreConversation = (historyItem) => {
@@ -231,7 +249,6 @@ export function Chat() {
       messages: historyItem.conversation.messages,
       sources: historyItem.conversation.sources,
     });
-    // Filter out duplicate messages based on content and role
     const uniqueMessages = [];
     const seen = new Set();
     for (const msg of historyItem.conversation.messages) {
@@ -247,7 +264,7 @@ export function Chat() {
     setResources(historyItem.conversation.sources.map((source) => ({ title: source, url: source })));
     setQuestion("");
     setHistoryId(historyItem.id);
-    setIsNewConversation(false); // Ensure restored conversation isn't treated as new
+    setIsNewConversation(false);
   };
 
   const handleNewChat = () => {

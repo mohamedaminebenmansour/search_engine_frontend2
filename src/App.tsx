@@ -6,6 +6,8 @@ import SignupPage from './pages/auth/SignupPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import GoogleCallbackPage from './pages/auth/GoogleCallbackPage';
+import CompanyAdminPage from './pages/CompanyAdminPage'; // Updated extension to .tsx
+import WebsiteAdminPage from './pages/WebsiteAdminPage';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { useState } from 'react';
@@ -60,7 +62,7 @@ function AppContent() {
     { text: "Move Sidebar to Right in Dashbc", date: "May 21, 2025" },
   ];
 
-  const showSidebars = location.pathname === '/chatchat';
+  const showSidebars = ['/company-admin', '/website-admin'].includes(location.pathname);
   const showNavbar = location.pathname === '/';
 
   return (
@@ -93,6 +95,8 @@ function AppContent() {
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/google-callback" element={<GoogleCallbackPage />} />
               <Route path="/read-more" element={<ReadMorePage />} />
+              <Route path="/company-admin" element={<CompanyAdminPage />} />
+              <Route path="/website-admin" element={<WebsiteAdminPage />} />
             </Routes>
           </main>
         </div>

@@ -8,44 +8,31 @@ export const apiFetch = async (
 
   // Create headers object
   const headers = new Headers();
-  headers.append("Content-Type", "application/json");
+  // Only set Content-Type for JSON if body is not FormData
+  if (!(options.body instanceof FormData)) {
+    headers.append("Content-Type", "application/json");
+  }
   if (token) {
     headers.append("Authorization", `Bearer ${token}`);
   }
 
-  // Ensure credentials are included for CORS
+  // Configure request
   const config: RequestInit = {
     ...options,
     headers,
     mode: "cors",
-    credentials: "include",
   };
 
   try {
-    // First check if we can make a simple OPTIONS request
-    const preflightResponse = await fetch(`${BASE_URL}${endpoint}`, {
-      method: "OPTIONS",
-      headers,
-      mode: "cors",
-      credentials: "include",
-    });
-    
-    if (!preflightResponse.ok) {
-      console.error("Preflight failed:", {
-        endpoint,
-        status: preflightResponse.status,
-        statusText: preflightResponse.statusText,
-      });
-      throw new Error(`CORS preflight failed: ${preflightResponse.statusText}`);
-    }
+    const fullUrl = `${BASE_URL}${endpoint}`;
+    console.log("API request to:", fullUrl);
+    const response = await fetch(fullUrl, config);
+    console.log("Raw response:", response);
 
-    // Now make the actual request
-    const response = await fetch(`${BASE_URL}${endpoint}`, config);
-
-    // Handle 401 Unauthorized specifically
+    // Handle 401 Unauthorized
     if (response.status === 401) {
       clearToken();
-      window.location.href = '/login';
+      window.location.href = "/login";
       throw new Error("Session expired. Please login again.");
     }
 
@@ -59,29 +46,23 @@ export const apiFetch = async (
       throw new Error(errorData.error || `Request failed with status ${response.status}`);
     }
 
-    return await response.json();
+    const responseData = await response.json();
+    console.log("Parsed response data:", responseData);
+    return responseData;
   } catch (error) {
     console.error("API Fetch Failed:", {
       endpoint,
       error: error.message,
     });
-    
-    // Provide more specific error message
-    if (error.message.includes("CORS preflight failed")) {
-      throw new Error("CORS configuration error. Please check server settings.");
-    }
-    
     throw new Error(`API call to ${endpoint} failed: ${error.message}`);
   }
 };
 
-// Add functions to manage the token in localStorage
 export const setToken = (token: string) => {
   localStorage.setItem("token", token);
 };
 
 export const clearToken = () => {
   localStorage.removeItem("token");
-  localStorage.removeItem("user_id");
-  localStorage.removeItem("username");
+  localStorage.removeItem("user");
 };

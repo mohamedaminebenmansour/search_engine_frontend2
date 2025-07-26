@@ -16,18 +16,42 @@ export default function LoginPage() {
     }
   }, [location]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const data = await apiFetch("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
+      if (!data.user || !data.user.id || !data.user.role) {
+        throw new Error("Invalid response from server: Missing user data");
+      }
       setToken(data.token);
-      localStorage.setItem("user_id", data.user.id.toString());
-      localStorage.setItem("username", data.user.username);
-      navigate("/chat");
-    } catch (err: any) {
+      localStorage.setItem("token", data.token);
+      const userData = {
+        user_id: data.user.id,
+        username: data.user.username,
+        role: data.user.role,
+        company_id: data.user.company_id,
+      };
+      localStorage.setItem("user", JSON.stringify(userData));
+      console.log("User data stored in localStorage:", userData);
+      console.log("Attempting navigation with role:", userData.role);
+      if (userData.role === "user") {
+        console.log("Navigating to /chat");
+        navigate("/chat");
+      } else if (userData.role === "company_admin") {
+        console.log("Navigating to /company-admin");
+        navigate("/company-admin");
+      } else if (userData.role === "website_admin") {
+        console.log("Navigating to /website-admin");
+        navigate("/website-admin");
+      } else {
+        console.error("Unknown role:", userData.role);
+        setError("Rôle utilisateur non reconnu");
+      }
+    } catch (err) {
+      console.error("Login error:", err);
       setError(err.message || "Email ou mot de passe incorrect");
     }
   };

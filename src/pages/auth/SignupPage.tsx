@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../../utils/api";
 import robotImage from '../../assets/fonts/robot.png';
@@ -8,46 +8,71 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState("user");
+  const [companyId, setCompanyId] = useState("");
+  const [newCompanyName, setNewCompanyName] = useState("");
+  const [companies, setCompanies] = useState([]);
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Fetch companies on component mount
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const response = await apiFetch("/auth/companies", {
+          method: "GET",
+        });
+        setCompanies(response.companies || []);
+      } catch (err) {
+        setError("Erreur lors du chargement des entreprises");
+      }
+    };
+    fetchCompanies();
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (password !== confirmPassword) {
       setError("Les mots de passe ne correspondent pas");
       return;
     }
+    
     try {
+      const payload = {
+        username,
+        email,
+        password,
+        role,
+        ...(role === "company_admin" && companyId && { company_id: companyId }),
+        ...(role === "company_admin" && newCompanyName && { new_company_name: newCompanyName }),
+      };
+
       await apiFetch("/auth/register", {
         method: "POST",
-        body: JSON.stringify({ username, email, password }),
+        body: JSON.stringify(payload),
       });
       navigate("/login");
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message || "Une erreur s'est produite lors de l'inscription");
     }
   };
 
   const handleGoogleSignup = () => {
-    // Redirect to Flask backend's Google login endpoint (same as login, handles signup)
     window.location.href = "http://localhost:5000/api/auth/google/login";
   };
 
   return (
-    // Conteneur principal avec le dégradé bleu de la HomePage (pour la cohérence globale)
     <div
       className="min-h-screen flex items-center justify-center
                  bg-gradient-to-br from-[#E0FFFF] to-[#ADD8E6] text-gray-800"
     >
       <div className="flex w-full max-w-7xl h-[80vh] bg-white rounded-3xl shadow-2xl overflow-hidden">
-        {/* Partie gauche : Image du robot avec fond vert aqua/menthe */}
-        <div className="w-1/2 flex items-center justify-center p-8 bg-[#E0FFFF] relative"> {/* NOUVEAU: Fond vert aqua très clair pour la section image */}
+        <div className="w-1/2 flex items-center justify-center p-8 bg-[#E0FFFF] relative">
           <img
             src={robotImage}
             alt="Robot Assistant"
             className="max-h-full w-auto object-contain animate-float"
           />
-          {/* Les bulles de dialogue peuvent rester les mêmes ou être ajustées si vous voulez un vert/bleu plus doux */}
           <div className="absolute top-1/4 left-1/4 bg-blue-400 text-white px-3 py-1 rounded-lg text-sm rotate-6 shadow-md">
             Hello!
           </div>
@@ -56,7 +81,6 @@ export default function SignupPage() {
           </div>
         </div>
 
-        {/* Partie droite : Formulaire d'inscription */}
         <div className="w-1/2 p-12 flex flex-col justify-center bg-white">
           <h2 className="text-4xl font-extrabold text-center text-[#2F4F4F] mb-8">
             hey ! Create Your Account
@@ -65,12 +89,37 @@ export default function SignupPage() {
           {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="flex space-x-4 mb-4">
+              <button
+                type="button"
+                className={`flex-1 py-2 rounded-xl font-bold text-lg transition-all duration-300 ${
+                  role === "user"
+                    ? "bg-[#7FFFD4] text-[#2F4F4F]"
+                    : "bg-gray-200 text-gray-700"
+                }`}
+                onClick={() => setRole("user")}
+              >
+                User
+              </button>
+              <button
+                type="button"
+                className={`flex-1 py-2 rounded-xl font-bold text-lg transition-all duration-300 ${
+                  role === "company_admin"
+                    ? "bg-[#7FFFD4] text-[#2F4F4F]"
+                    : "bg-gray-200 text-gray-700"
+                }`}
+                onClick={() => setRole("company_admin")}
+              >
+                Company Admin
+              </button>
+            </div>
+
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Username"
-              className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-3 focus:ring-[#ADD8E6] transition-all duration-200" // Reste bleu pour la cohérence des inputs
+              className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-3 focus:ring-[#ADD8E6] transition-all duration-200"
               required
             />
             <input
@@ -78,7 +127,7 @@ export default function SignupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email"
-              className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-3 focus:ring-[#ADD8E6] transition-all duration-200" // Reste bleu pour la cohérence des inputs
+              className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-3 focus:ring-[#ADD8E6] transition-all duration-200"
               required
             />
             <input
@@ -86,7 +135,7 @@ export default function SignupPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Password"
-              className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-3 focus:ring-[#ADD8E6] transition-all duration-200" // Reste bleu pour la cohérence des inputs
+              className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-3 focus:ring-[#ADD8E6] transition-all duration-200"
               required
             />
             <input
@@ -94,13 +143,44 @@ export default function SignupPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm Password"
-              className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-3 focus:ring-[#ADD8E6] transition-all duration-200" // Reste bleu pour la cohérence des inputs
+              className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-3 focus:ring-[#ADD8E6] transition-all duration-200"
               required
             />
+
+            {role === "company_admin" && (
+              <div className="space-y-4">
+                <select
+                  value={companyId}
+                  onChange={(e) => {
+                    setCompanyId(e.target.value);
+                    setNewCompanyName(""); // Clear new company name when selecting existing company
+                  }}
+                  className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-3 focus:ring-[#ADD8E6] transition-all duration-200"
+                >
+                  <option value="">Select an existing company</option>
+                  {companies.map((company) => (
+                    <option key={company.id} value={company.id}>
+                      {company.name}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  value={newCompanyName}
+                  onChange={(e) => {
+                    setNewCompanyName(e.target.value);
+                    setCompanyId(""); // Clear company selection when entering new company name
+                  }}
+                  placeholder="Or enter new company name"
+                  className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-3 focus:ring-[#ADD8E6] transition-all duration-200"
+                />
+              </div>
+            )}
+
             <button
               type="submit"
               className="w-full py-4 bg-[#7FFFD4] text-[#2F4F4F] rounded-xl font-bold text-lg
-                         hover:bg-[#66CDAA] transition-all duration-300 transform hover:-translate-y-1 shadow-lg" // NOUVEAU: Bouton vert aqua avec texte sombre
+                         hover:bg-[#66CDAA] transition-all duration-300 transform hover:-translate-y-1 shadow-lg"
             >
               Sign Up
             </button>
@@ -118,7 +198,7 @@ export default function SignupPage() {
             Already have an account?{" "}
             <button
               onClick={() => navigate("/login")}
-              className="text-[#7FFFD4] hover:underline font-semibold" // NOUVEAU: Lien vert aqua
+              className="text-[#7FFFD4] hover:underline font-semibold"
             >
               Login
             </button>
