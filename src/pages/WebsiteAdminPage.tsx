@@ -40,6 +40,12 @@ export default function WebsiteAdminPage() {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const navigate = useNavigate();
 
+  const clearSidebarData = () => {
+    localStorage.removeItem("sidebarHistory"); // Adjust key as needed
+    localStorage.removeItem("resources"); // Adjust key as needed
+    console.log("Sidebar history and resources cleared");
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -238,12 +244,20 @@ export default function WebsiteAdminPage() {
           <h2 className="text-4xl font-extrabold text-center text-[#2F4F4F]">
             Website Admin Dashboard
           </h2>
-          <button
-            onClick={handleLogout}
-            className="py-2 px-4 bg-red-500 text-white rounded-xl font-bold"
-          >
-            Logout
-          </button>
+          <div className="flex space-x-2">
+            <button
+              onClick={clearSidebarData}
+              className="py-2 px-4 bg-yellow-500 text-white rounded-xl font-bold"
+            >
+              Clear Sidebar
+            </button>
+            <button
+              onClick={handleLogout}
+              className="py-2 px-4 bg-red-500 text-white rounded-xl font-bold"
+            >
+              Logout
+            </button>
+          </div>
         </div>
 
         {currentUser && (

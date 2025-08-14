@@ -62,7 +62,7 @@ function AppContent() {
     { text: "Move Sidebar to Right in Dashbc", date: "May 21, 2025" },
   ];
 
-  const showSidebars = ['/company-admin', '/website-admin'].includes(location.pathname);
+  const showSidebars = ['', ''].includes(location.pathname);
   const showNavbar = location.pathname === '/';
 
   return (
