@@ -110,20 +110,7 @@ export default function SignupPage() {
               >
                 User
               </button>
-              <button
-                type="button"
-                className={`flex-1 py-2 rounded-xl font-bold text-lg transition-all duration-300 ${
-                  role === "company_user"
-                    ? "bg-[#7FFFD4] text-[#2F4F4F]"
-                    : "bg-gray-200 text-gray-700"
-                }`}
-                onClick={() => {
-                  setRole("company_user");
-                  console.log("Selected role: company_user");
-                }}
-              >
-                Company User
-              </button>
+             
             </div>
 
             <input
@@ -158,24 +145,6 @@ export default function SignupPage() {
               className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-3 focus:ring-[#ADD8E6] transition-all duration-200"
               required
             />
-
-            {role === "company_user" && (
-              <select
-                value={companyId}
-                onChange={(e) => {
-                  setCompanyId(e.target.value);
-                  console.log("Selected company_id:", e.target.value);
-                }}
-                className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-3 focus:ring-[#ADD8E6] transition-all duration-200"
-              >
-                <option value="">Select an existing company</option>
-                {companies.map((company) => (
-                  <option key={company.id} value={company.id}>
-                    {company.name}
-                  </option>
-                ))}
-              </select>
-            )}
 
             <button
               type="submit"
