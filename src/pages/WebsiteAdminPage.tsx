@@ -35,14 +35,17 @@ export default function WebsiteAdminPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [statistics, setStatistics] = useState<Statistics | null>(null);
   const [newCompanyName, setNewCompanyName] = useState("");
-  const [newCompanyAdminId, setNewCompanyAdminId] = useState("");
+  const [newAdminUsername, setNewAdminUsername] = useState("");
+  const [newAdminEmail, setNewAdminEmail] = useState("");
+  const [newAdminPassword, setNewAdminPassword] = useState("");
+  const [newAdminConfirmPassword, setNewAdminConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const navigate = useNavigate();
 
   const clearSidebarData = () => {
-    localStorage.removeItem("sidebarHistory"); // Adjust key as needed
-    localStorage.removeItem("resources"); // Adjust key as needed
+    localStorage.removeItem("sidebarHistory");
+    localStorage.removeItem("resources");
     console.log("Sidebar history and resources cleared");
   };
 
@@ -109,28 +112,52 @@ export default function WebsiteAdminPage() {
     fetchData();
   }, [navigate]);
 
-  const handleCreateCompany = async () => {
+  const handleCreateCompanyAndAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newAdminPassword !== newAdminConfirmPassword) {
+      setError("Les mots de passe ne correspondent pas");
+      return;
+    }
+
+    if (!newCompanyName || !newAdminUsername || !newAdminEmail || !newAdminPassword) {
+      setError("Tous les champs sont requis");
+      return;
+    }
+
     try {
-      console.log("Current user:", currentUser);
-      console.log("Creating company with name:", newCompanyName, "admin_id:", newCompanyAdminId);
-      const response = await apiFetch("/company/companies", {
+      const payload = {
+        username: newAdminUsername,
+        email: newAdminEmail,
+        password: newAdminPassword,
+        role: "company_admin",
+        new_company_name: newCompanyName,
+      };
+
+      const response = await apiFetch("/auth/register", {
         method: "POST",
-        body: JSON.stringify({ name: newCompanyName, admin_id: newCompanyAdminId || null }),
+        body: JSON.stringify(payload),
       });
-      console.log("Company created successfully:", response);
-      console.log("Fetching updated companies list...");
+      console.log("Company and admin created successfully:", response);
+
+      // Refresh companies list
       const companiesResponse = await apiFetch("/company/companies", {
         method: "GET",
       });
-      console.log("Updated companies response:", companiesResponse);
       setCompanies(companiesResponse.companies || []);
-      console.log("Companies set:", companiesResponse.companies || []);
+
+      // Refresh users list to include new admin
+      const usersResponse = await apiFetch("/admin/users", { method: "GET" });
+      setUsers(usersResponse.users || []);
+
       setNewCompanyName("");
-      setNewCompanyAdminId("");
+      setNewAdminUsername("");
+      setNewAdminEmail("");
+      setNewAdminPassword("");
+      setNewAdminConfirmPassword("");
       setError("");
     } catch (err) {
-      console.error("Error in handleCreateCompany:", err);
-      setError(err.message || "Erreur lors de la création de l’entreprise");
+      console.error("Error in handleCreateCompanyAndAdmin:", err);
+      setError(err.message || "Erreur lors de la création de l’entreprise et de l’administrateur");
     }
   };
 
@@ -147,7 +174,6 @@ export default function WebsiteAdminPage() {
       const usersResponse = await apiFetch("/admin/users", { method: "GET" });
       console.log("Updated users response:", usersResponse);
       setUsers(usersResponse.users || []);
-      console.log("Users set:", usersResponse.users || []);
       setError("");
     } catch (err) {
       console.error("Error in handleUpdateUser:", {
@@ -171,7 +197,6 @@ export default function WebsiteAdminPage() {
         });
         console.log("User deleted successfully:", response);
         setUsers(users.filter((user) => user.id !== userId));
-        console.log("Updated users list (local):", users.filter((user) => user.id !== userId));
         setError("");
       } catch (err) {
         console.error("Error in handleDeleteUser:", {
@@ -198,7 +223,6 @@ export default function WebsiteAdminPage() {
       });
       console.log("Updated companies response:", companiesResponse);
       setCompanies(companiesResponse.companies || []);
-      console.log("Companies set:", companiesResponse.companies || []);
       setError("");
     } catch (err) {
       console.error("Error in handleUpdateCompany:", {
@@ -220,7 +244,6 @@ export default function WebsiteAdminPage() {
         });
         console.log("Company deleted successfully:", response);
         setCompanies(companies.filter((company) => company.id !== companyId));
-        console.log("Updated companies list (local):", companies.filter((company) => company.id !== companyId));
         setError("");
       } catch (err) {
         console.error("Error in handleDeleteCompany:", {
@@ -247,13 +270,13 @@ export default function WebsiteAdminPage() {
           <div className="flex space-x-2">
             <button
               onClick={clearSidebarData}
-              className="py-2 px-4 bg-yellow-500 text-white rounded-xl font-bold"
+              className="py-2 px-4 bg-yellow-500 text-white rounded-xl font-bold hover:bg-yellow-600 transition-all duration-300"
             >
               Clear Sidebar
             </button>
             <button
               onClick={handleLogout}
-              className="py-2 px-4 bg-red-500 text-white rounded-xl font-bold"
+              className="py-2 px-4 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-all duration-300"
             >
               Logout
             </button>
@@ -282,29 +305,55 @@ export default function WebsiteAdminPage() {
         )}
 
         <div className="mb-8">
-          <h3 className="text-2xl font-bold text-[#2F4F4F] mb-4">Create Company</h3>
-          <div className="flex space-x-2 mb-4">
+          <h3 className="text-2xl font-bold text-[#2F4F4F] mb-4">Create Company & Admin</h3>
+          <form onSubmit={handleCreateCompanyAndAdmin} className="space-y-4">
             <input
               type="text"
               value={newCompanyName}
               onChange={(e) => setNewCompanyName(e.target.value)}
               placeholder="Company name"
-              className="w-full p-4 border border-gray-300 rounded-xl"
+              className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-3 focus:ring-[#ADD8E6] transition-all duration-200"
+              required
             />
             <input
-              type="number"
-              value={newCompanyAdminId}
-              onChange={(e) => setNewCompanyAdminId(e.target.value)}
-              placeholder="Admin ID (optional)"
-              className="w-full p-4 border border-gray-300 rounded-xl"
+              type="text"
+              value={newAdminUsername}
+              onChange={(e) => setNewAdminUsername(e.target.value)}
+              placeholder="Admin username"
+              className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-3 focus:ring-[#ADD8E6] transition-all duration-200"
+              required
+            />
+            <input
+              type="email"
+              value={newAdminEmail}
+              onChange={(e) => setNewAdminEmail(e.target.value)}
+              placeholder="Admin email"
+              className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-3 focus:ring-[#ADD8E6] transition-all duration-200"
+              required
+            />
+            <input
+              type="password"
+              value={newAdminPassword}
+              onChange={(e) => setNewAdminPassword(e.target.value)}
+              placeholder="Admin password"
+              className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-3 focus:ring-[#ADD8E6] transition-all duration-200"
+              required
+            />
+            <input
+              type="password"
+              value={newAdminConfirmPassword}
+              onChange={(e) => setNewAdminConfirmPassword(e.target.value)}
+              placeholder="Confirm admin password"
+              className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-3 focus:ring-[#ADD8E6] transition-all duration-200"
+              required
             />
             <button
-              onClick={handleCreateCompany}
-              className="py-2 px-4 bg-[#4682B4] text-white rounded-xl font-bold"
+              type="submit"
+              className="w-full py-4 bg-[#7FFFD4] text-[#2F4F4F] rounded-xl font-bold text-lg hover:bg-[#66CDAA] transition-all duration-300 transform hover:-translate-y-1 shadow-lg"
             >
-              Create
+              Create Company & Admin
             </button>
-          </div>
+          </form>
         </div>
 
         <div className="mb-8">
@@ -320,7 +369,7 @@ export default function WebsiteAdminPage() {
                   <select
                     onChange={(e) => handleUpdateUser(user.id, e.target.value, user.company_id)}
                     value={user.role}
-                    className="mr-2 p-2 border rounded-xl"
+                    className="mr-2 p-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#ADD8E6]"
                   >
                     <option value="user">User</option>
                     <option value="company_admin">Company Admin</option>
@@ -329,7 +378,7 @@ export default function WebsiteAdminPage() {
                   <select
                     onChange={(e) => handleUpdateUser(user.id, user.role, e.target.value || null)}
                     value={user.company_id || ""}
-                    className="mr-2 p-2 border rounded-xl"
+                    className="mr-2 p-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#ADD8E6]"
                   >
                     <option value="">None</option>
                     {companies.map((company) => (
@@ -340,7 +389,7 @@ export default function WebsiteAdminPage() {
                   </select>
                   <button
                     onClick={() => handleDeleteUser(user.id)}
-                    className="py-1 px-2 bg-red-500 text-white rounded-xl"
+                    className="py-1 px-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all duration-300"
                   >
                     Delete
                   </button>
@@ -363,11 +412,11 @@ export default function WebsiteAdminPage() {
                     type="text"
                     defaultValue={company.name}
                     onBlur={(e) => handleUpdateCompany(company.id, e.target.value)}
-                    className="mr-2 p-2 border rounded-xl"
+                    className="mr-2 p-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#ADD8E6]"
                   />
                   <button
                     onClick={() => handleDeleteCompany(company.id)}
-                    className="py-1 px-2 bg-red-500 text-white rounded-xl"
+                    className="py-1 px-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all duration-300"
                   >
                     Delete
                   </button>

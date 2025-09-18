@@ -6,6 +6,7 @@ import SignupPage from './pages/auth/SignupPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import GoogleCallbackPage from './pages/auth/GoogleCallbackPage';
+import UpdateProfilePage from './pages/auth/UpdateProfilePage';
 import CompanyAdminPage from './pages/CompanyAdminPage'; // Updated extension to .tsx
 import WebsiteAdminPage from './pages/WebsiteAdminPage';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
@@ -97,6 +98,7 @@ function AppContent() {
               <Route path="/read-more" element={<ReadMorePage />} />
               <Route path="/company-admin" element={<CompanyAdminPage />} />
               <Route path="/website-admin" element={<WebsiteAdminPage />} />
+              <Route path="/update-profile" element={<UpdateProfilePage />} />
             </Routes>
           </main>
         </div>

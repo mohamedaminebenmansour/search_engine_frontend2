@@ -24,7 +24,10 @@ export function Chat() {
   const navigationType = useNavigationType();
 
   const isAuthenticated = !!localStorage.getItem("token");
-  const role = localStorage.getItem("role") || "user";
+  const storedUser = localStorage.getItem("user");
+  const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+  const role = parsedUser?.role || "user";
+  const userId = parsedUser?.user_id;
   const models = isAuthenticated ? ['llama2', 'gemma', 'llama3', 'mistral'] : ['llama3', 'mistral'];
   const [selectedModel, setSelectedModel] = useState(state?.model || models[0]);
 
@@ -41,6 +44,9 @@ export function Chat() {
     } else if (role === "website_admin") {
       console.log("Website admin detected, redirecting to /website-admin");
       navigate("/website-admin");
+    } else if (role !== "user" && role !== "company_user") {
+      console.log("Unknown role detected, redirecting to login", { role });
+      navigate("/login");
     }
   }, [isAuthenticated, role, navigate]);
 
@@ -85,12 +91,12 @@ export function Chat() {
   }, [state?.query, state?.model, isLoading, models, navigationType, navigate]);
 
   useEffect(() => {
-    const storedUsername = localStorage.getItem("username");
+    const storedUsername = parsedUser?.username || localStorage.getItem("username");
     console.log("Initial User Data from localStorage:", {
-      userId: localStorage.getItem("user_id"),
+      userId,
       username: storedUsername,
       token: localStorage.getItem("token"),
-      role: localStorage.getItem("role"),
+      role,
     });
 
     if (!storedUsername) {
@@ -109,15 +115,15 @@ export function Chat() {
   }, []);
 
   const fetchHistory = async () => {
-    if (!isAuthenticated) {
-      console.log("User not authenticated, clearing history");
+    if (!isAuthenticated || !userId) {
+      console.log("User not authenticated or no user ID, clearing history");
       setHistory([]);
       setHistoryError(null);
       return;
     }
 
     try {
-      console.log("Fetching history for authenticated user");
+      console.log("Fetching history for authenticated user", { userId });
       const data = await apiFetch("/history", { method: "GET" });
       console.log("Fetched History Data:", data);
       setHistory(data.history || []);
@@ -138,6 +144,7 @@ export function Chat() {
       isAuthenticated,
       historyId,
       messagesLength: messages.length,
+      userId,
       timestamp: Date.now(),
     });
 
@@ -150,26 +157,11 @@ export function Chat() {
       setIsLoading(true);
     }
 
-    const userIdRaw = localStorage.getItem("user_id");
-
-    if (isAuthenticated && !userIdRaw) {
-      console.error("No user_id found in localStorage. Redirecting to login.");
+    if (isAuthenticated && (!userId || !Number.isInteger(userId) || userId <= 0)) {
+      console.error("Invalid or missing user_id in localStorage:", userId);
       setMessages((prev) => [
         ...prev,
-        { content: "Erreur: Veuillez vous connecter.", role: "assistant", id: Date.now().toString() },
-      ]);
-      clearToken();
-      navigate("/login");
-      setIsLoading(false);
-      return;
-    }
-
-    const userId = isAuthenticated ? parseInt(userIdRaw || "0", 10) : null;
-    if (isAuthenticated && isNaN(userId)) {
-      console.error("Invalid user_id in localStorage:", userIdRaw);
-      setMessages((prev) => [
-        ...prev,
-        { content: "Erreur: ID utilisateur invalide. Veuillez vous reconnecter.", role: "assistant", id: Date.now().toString() },
+        { content: "Erreur: ID utilisateur invalide ou manquant. Veuillez vous reconnecter.", role: "assistant", id: Date.now().toString() },
       ]);
       clearToken();
       navigate("/login");
@@ -232,10 +224,10 @@ export function Chat() {
 
   const handleLogout = () => {
     console.log("Logging out user:", {
-      userId: localStorage.getItem("user_id"),
+      userId,
       username,
       token: localStorage.getItem("token"),
-      role: localStorage.getItem("role"),
+      role,
     });
     clearToken();
     console.log("User data cleared from localStorage");

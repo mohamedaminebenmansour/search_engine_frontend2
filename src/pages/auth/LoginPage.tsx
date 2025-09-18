@@ -33,22 +33,28 @@ export default function LoginPage() {
         username: data.user.username,
         role: data.user.role,
         company_id: data.user.company_id,
+        first_login: data.user.first_login,
       };
       localStorage.setItem("user", JSON.stringify(userData));
       console.log("User data stored in localStorage:", userData);
       console.log("Attempting navigation with role:", userData.role);
-      if (userData.role === "user") {
-        console.log("Navigating to /chat");
-        navigate("/chat");
-      } else if (userData.role === "company_admin") {
-        console.log("Navigating to /company-admin");
-        navigate("/company-admin");
-      } else if (userData.role === "website_admin") {
-        console.log("Navigating to /website-admin");
-        navigate("/website-admin");
+      if (data.user.first_login && (userData.role === "company_user" || userData.role === "company_admin")) {
+        console.log("Navigating to /update-profile for first login");
+        navigate("/update-profile");
       } else {
-        console.error("Unknown role:", userData.role);
-        setError("Rôle utilisateur non reconnu");
+        if (userData.role === "user" || userData.role === "company_user") {
+          console.log("Navigating to /chat");
+          navigate("/chat");
+        } else if (userData.role === "company_admin") {
+          console.log("Navigating to /company-admin");
+          navigate("/company-admin");
+        } else if (userData.role === "website_admin") {
+          console.log("Navigating to /website-admin");
+          navigate("/website-admin");
+        } else {
+          console.error("Unknown role:", userData.role);
+          setError("Rôle utilisateur non reconnu");
+        }
       }
     } catch (err) {
       console.error("Login error:", err);

@@ -10,7 +10,6 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState("user");
   const [companyId, setCompanyId] = useState("");
-  const [newCompanyName, setNewCompanyName] = useState("");
   const [companies, setCompanies] = useState([]);
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -23,8 +22,10 @@ export default function SignupPage() {
           method: "GET",
         });
         setCompanies(response.companies || []);
+        console.log("Fetched companies:", response.companies);
       } catch (err) {
         setError("Erreur lors du chargement des entreprises");
+        console.error("Error fetching companies:", err);
       }
     };
     fetchCompanies();
@@ -34,6 +35,7 @@ export default function SignupPage() {
     e.preventDefault();
     if (password !== confirmPassword) {
       setError("Les mots de passe ne correspondent pas");
+      console.log("Password mismatch");
       return;
     }
     
@@ -43,21 +45,24 @@ export default function SignupPage() {
         email,
         password,
         role,
-        ...(role === "company_admin" && companyId && { company_id: companyId }),
-        ...(role === "company_admin" && newCompanyName && { new_company_name: newCompanyName }),
+        ...(role === "company_user" && companyId && { company_id: companyId }),
       };
+      console.log("Submitting signup payload:", payload);
 
       await apiFetch("/auth/register", {
         method: "POST",
         body: JSON.stringify(payload),
       });
+      console.log("Signup successful, navigating to login");
       navigate("/login");
     } catch (err) {
       setError(err.message || "Une erreur s'est produite lors de l'inscription");
+      console.error("Signup error:", err);
     }
   };
 
   const handleGoogleSignup = () => {
+    console.log("Initiating Google signup");
     window.location.href = "http://localhost:5000/api/auth/google/login";
   };
 
@@ -97,20 +102,27 @@ export default function SignupPage() {
                     ? "bg-[#7FFFD4] text-[#2F4F4F]"
                     : "bg-gray-200 text-gray-700"
                 }`}
-                onClick={() => setRole("user")}
+                onClick={() => {
+                  setRole("user");
+                  setCompanyId("");
+                  console.log("Selected role: user");
+                }}
               >
                 User
               </button>
               <button
                 type="button"
                 className={`flex-1 py-2 rounded-xl font-bold text-lg transition-all duration-300 ${
-                  role === "company_admin"
+                  role === "company_user"
                     ? "bg-[#7FFFD4] text-[#2F4F4F]"
                     : "bg-gray-200 text-gray-700"
                 }`}
-                onClick={() => setRole("company_admin")}
+                onClick={() => {
+                  setRole("company_user");
+                  console.log("Selected role: company_user");
+                }}
               >
-                Company Admin
+                Company User
               </button>
             </div>
 
@@ -147,34 +159,22 @@ export default function SignupPage() {
               required
             />
 
-            {role === "company_admin" && (
-              <div className="space-y-4">
-                <select
-                  value={companyId}
-                  onChange={(e) => {
-                    setCompanyId(e.target.value);
-                    setNewCompanyName(""); // Clear new company name when selecting existing company
-                  }}
-                  className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-3 focus:ring-[#ADD8E6] transition-all duration-200"
-                >
-                  <option value="">Select an existing company</option>
-                  {companies.map((company) => (
-                    <option key={company.id} value={company.id}>
-                      {company.name}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="text"
-                  value={newCompanyName}
-                  onChange={(e) => {
-                    setNewCompanyName(e.target.value);
-                    setCompanyId(""); // Clear company selection when entering new company name
-                  }}
-                  placeholder="Or enter new company name"
-                  className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-3 focus:ring-[#ADD8E6] transition-all duration-200"
-                />
-              </div>
+            {role === "company_user" && (
+              <select
+                value={companyId}
+                onChange={(e) => {
+                  setCompanyId(e.target.value);
+                  console.log("Selected company_id:", e.target.value);
+                }}
+                className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-3 focus:ring-[#ADD8E6] transition-all duration-200"
+              >
+                <option value="">Select an existing company</option>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+              </select>
             )}
 
             <button
@@ -197,7 +197,10 @@ export default function SignupPage() {
           <p className="text-base text-center mt-8 text-gray-700">
             Already have an account?{" "}
             <button
-              onClick={() => navigate("/login")}
+              onClick={() => {
+                console.log("Navigating to login");
+                navigate("/login");
+              }}
               className="text-[#7FFFD4] hover:underline font-semibold"
             >
               Login
