@@ -31,13 +31,9 @@ export function Chat() {
   const models = isAuthenticated ? ['llama2', 'gemma', 'llama3', 'mistral'] : ['llama3', 'mistral'];
   const [selectedModel, setSelectedModel] = useState(state?.model || models[0]);
 
-  // Redirect non-user roles
+  // Redirect non-user roles (Modified: Removed !isAuthenticated redirect to allow anonymous access)
   useEffect(() => {
-    if (!isAuthenticated) {
-      console.log("User not authenticated, redirecting to login");
-      navigate("/login");
-      return;
-    }
+    // Removed: if (!isAuthenticated) { navigate("/login"); return; } — this enables anonymous users to stay on the chat page
     if (role === "company_admin") {
       console.log("Company admin detected, redirecting to /company-admin");
       navigate("/company-admin");
